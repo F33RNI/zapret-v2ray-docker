@@ -1,0 +1,51 @@
+{
+    "$schema": "https://github.com/EHfive/v2ray-jsonschema/raw/main/v5-config.schema.json",
+    "log": {
+        "error": { "type": "Console", "level": "Warning" },
+        "access": { "type": "Console", "level": "Warning" }
+    },
+    "dns": {
+        "nameServer": [
+            { "address": { "address": "127.0.0.1", "port": 53 }, "queryStrategy": "USE_IP4" },
+            { "address": { "address": "::1", "port": 53 }, "queryStrategy": "USE_IP6" }
+        ],
+        "staticHosts": [],
+        "fakeDns": {},
+        "cacheStrategy": "CacheEnabled",
+        "disableCache": false,
+        "disableFallback": true,
+        "tag": "dns"
+    },
+    "router": {
+        "domainStrategy": "IpOnDemand",
+        "rule": [
+            { "tag": "direct", "geoip": [{ "cidr": [{ "ipAddr": "192.168.0.0", "prefix": 16 }] }] },
+            { "tag": "block", "sourcePortList": "443", "networks": "udp" },
+            { "tag": "block", "geoDomain": [{ "code": "category-ads-all" }] },
+            {
+                "tag": "block",
+                "domain": [
+                    { "type": "Plain", "value": "appcenter.ms" },
+                    { "type": "Plain", "value": "firebase.io" },
+                    { "type": "Plain", "value": "crashlytics.com" }
+                ]
+            }
+        ]
+    },
+    "inbounds": [
+        {
+            "protocol": "socks",
+            "listen": "0.0.0.0",
+            "port": 2080,
+            "settings": {
+                "packetEncoding": "Packet",
+                "udpEnabled": true
+            }
+        }
+    ],
+    "outbounds": [
+        { "tag": "direct", "protocol": "freedom" },
+        { "tag": "block", "protocol": "blackhole" }
+    ],
+    "services": {}
+}

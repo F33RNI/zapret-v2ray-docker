@@ -1,0 +1,17 @@
+services:
+    zapret-v2ray-docker:
+        build:
+            context: .
+            dockerfile: Dockerfile
+        container_name: zapret-v2ray-docker
+        privileged: true
+        # network_mode: "host"
+        tmpfs:
+            - /run
+            - /run/lock
+        stdin_open: true
+        tty: true
+        ports:
+            - "2080:2080"
+        volumes:
+            - ./configs:/configs
