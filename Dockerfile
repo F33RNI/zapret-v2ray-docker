@@ -101,7 +101,7 @@ RUN ln -sf "$_ZAPRET_CONFIG_FILE" "$_ZAPRET_CONFIG_FILE_INT"
 WORKDIR /root
 
 # Copy scripts
-COPY container_scripts/*.sh .
+COPY container_scripts/*.sh ./
 RUN chmod +x ./*.sh
 
 # Start everything
