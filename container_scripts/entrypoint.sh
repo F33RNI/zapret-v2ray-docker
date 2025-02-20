@@ -50,7 +50,7 @@ delete_old_log "$_ZAPRET_LOG_FILE"
 
 # Create log dir
 mkdir -p "$_LOGS_DIR_INT"
-chmod -R 777 "$_LOGS_DIR_INT"
+chmod 777 "$_LOGS_DIR_INT"
 
 # Start dnscrypt-proxy
 cp /etc/resolv.conf /etc/resolv.conf.old
