@@ -105,4 +105,5 @@ COPY container_scripts/*.sh ./
 RUN chmod +x ./*.sh
 
 # Start everything
-CMD ["/usr/bin/env", "bash", "-c", "./entrypoint.sh"]
+ENTRYPOINT ["/usr/bin/env", "bash"]
+CMD ["./entrypoint.sh"]
