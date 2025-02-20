@@ -35,13 +35,20 @@ echo " /_(_][_)[  (/, |       \/ /_. [  (_]\\_|     (_](_)(_.| \\(/,[  "
 echo "      |                              ._|                       "
 echo -e "\nVersion: $_VERSION\n"
 
+# Load environment variables and perform basic check
+source .env
+if [ -z "$DNSCRYPT_DIR" ] || [ -z "$V2RAY_DIR" ] || [ -z "$ZAPRET_DIR" ]; then
+    echo "ERROR: Some environment variables are empty / not specified"
+    exit 1
+fi
+
 # Platform and architecture for programs
 # See <https://github.com/DNSCrypt/dnscrypt-proxy/releases/latest>
 # and <https://github.com/v2fly/v2ray-core/releases/latest> for more info
 #
 # You can specify them as environment variables PLATFORM, DNSCRYPT_ARCH, V2RAY_ARCH
-if [ -z "${PLATFORM}" ]; then PLATFORM="linux"; fi
-if [ -z "${DNSCRYPT_ARCH}" ] || [ -z "${V2RAY_ARCH}" ]; then
+if [ -z "$PLATFORM" ]; then PLATFORM="linux"; fi
+if [ -z "$DNSCRYPT_ARCH" ] || [ -z "$V2RAY_ARCH" ]; then
     arch_=$(uname -m)
     case "$arch_" in
     x86_64)
@@ -65,8 +72,8 @@ if [ -z "${DNSCRYPT_ARCH}" ] || [ -z "${V2RAY_ARCH}" ]; then
         exit 1
         ;;
     esac
-    if [ -z "${DNSCRYPT_ARCH}" ]; then DNSCRYPT_ARCH="$_dnscrypt_arch"; fi
-    if [ -z "${V2RAY_ARCH}" ]; then V2RAY_ARCH="$_v2ray_arch"; fi
+    if [ -z "$DNSCRYPT_ARCH" ]; then DNSCRYPT_ARCH="$_dnscrypt_arch"; fi
+    if [ -z "$V2RAY_ARCH" ]; then V2RAY_ARCH="$_v2ray_arch"; fi
 fi
 echo "Working on $PLATFORM platform. dnscrypt-proxy target architecture: $DNSCRYPT_ARCH, v2ray: $V2RAY_ARCH"
 
@@ -144,19 +151,19 @@ check_download() {
 release_json=$(curl -s https://api.github.com/repos/DNSCrypt/dnscrypt-proxy/releases/latest)
 download_url=$(echo "$release_json" | grep -oP '"browser_download_url": "\K.*?\.tar\.gz(?=")' | grep -oE ".*dnscrypt-proxy-${PLATFORM}_${DNSCRYPT_ARCH}-.*\.tar\.gz")
 latest_tag_name=$(echo "$release_json" | grep -oP '"tag_name": "\K.*?(?=")')
-check_download "./dnscrypt-proxy" "$download_url" "$latest_tag_name"
+check_download "$DNSCRYPT_DIR" "$download_url" "$latest_tag_name"
 
 # Download v2ray
 release_json=$(curl -s https://api.github.com/repos/v2fly/v2ray-core/releases/latest)
 download_url=$(echo "$release_json" | grep -oP '"browser_download_url": "\K.*?\.zip(?=")' | grep -oE ".*v2ray-${PLATFORM}-${V2RAY_ARCH}\.zip")
 latest_tag_name=$(echo "$release_json" | grep -oP '"tag_name": "\K.*?(?=")')
-check_download "./v2ray" "$download_url" "$latest_tag_name"
+check_download "$V2RAY_DIR" "$download_url" "$latest_tag_name"
 
 # Download zapret
 release_json=$(curl -s https://api.github.com/repos/bol-van/zapret/releases/latest)
 download_url=$(echo "$release_json" | grep -oP '"browser_download_url": "\K.*?\.tar\.gz(?=")' | grep -v "openwrt")
 latest_tag_name=$(echo "$release_json" | grep -oP '"tag_name": "\K.*?(?=")')
-check_download "./zapret" "$download_url" "$latest_tag_name"
+check_download "$ZAPRET_DIR" "$download_url" "$latest_tag_name"
 
 # ############### #
 # Build container #
@@ -168,7 +175,10 @@ docker kill zapret-v2ray-docker
 
 # Build and start the container
 echo -e "\nBuilding and starting the container"
-docker-compose up --build --detach
+if ! docker-compose up --build --detach; then
+    echo "ERROR: docker-compose finished with error"
+    exit 1
+fi
 
 # Wait for container to be ready
 echo -e "\nWaiting for container to start..."
