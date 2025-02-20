@@ -24,42 +24,87 @@
 FROM debian:stable-slim
 LABEL maintainer="Fern Lane"
 
+# Internal paths to programs (where they will be installed) inside the container (copied from host)
+ENV _DNSCRYPT_DIR_INT="/opt/dnscrypt-proxy"
+ENV _V2RAY_DIR_INT="/opt/v2ray"
+ENV _ZAPRET_DIR_INT="/opt/zapret"
+
+# Internal paths to symbolic links of config files inside the container
+ENV _DNSCRYPT_CONFIG_FILE_INT="${_DNSCRYPT_DIR_INT}/dnscrypt-proxy.toml"
+ENV _V2RAY_CONFIG_FILE_INT="${_V2RAY_DIR_INT}/config.json"
+ENV _ZAPRET_CONFIG_FILE_INT="${_ZAPRET_DIR_INT}/config"
+
+# Arguments from docker-compose.yml
+ARG TZ
+RUN test -n "$TZ"
+ENV TZ=${TZ}
+ARG DNSCRYPT_DIR
+RUN test -n "$DNSCRYPT_DIR"
+ENV DNSCRYPT_DIR=${DNSCRYPT_DIR}
+ARG V2RAY_DIR
+RUN test -n "$V2RAY_DIR"
+ENV V2RAY_DIR=${V2RAY_DIR}
+ARG ZAPRET_DIR
+RUN test -n "$ZAPRET_DIR"
+ENV ZAPRET_DIR=${ZAPRET_DIR}
+ARG _CONFIGS_DIR_INT
+RUN test -n "$_CONFIGS_DIR_INT"
+ENV _CONFIGS_DIR_INT=${_CONFIGS_DIR_INT}
+ARG _LOGS_DIR_INT
+RUN test -n "$_LOGS_DIR_INT"
+ENV _LOGS_DIR_INT=${_LOGS_DIR_INT}
+
+# Config and log files in mounted volume inside the container
+ENV _DNSCRYPT_CONFIG_FILE="${_CONFIGS_DIR_INT}/dnscrypt-proxy.toml"
+ENV _V2RAY_CONFIG_FILE="${_CONFIGS_DIR_INT}/v2ray.json"
+ENV _ZAPRET_CONFIG_FILE="${_CONFIGS_DIR_INT}/zapret.conf"
+ENV _DNSCRYPT_LOG_FILE="${_LOGS_DIR_INT}/dnscrypt-proxy.log"
+ENV _V2RAY_LOG_FILE="${_LOGS_DIR_INT}/v2ray.log"
+ENV _ZAPRET_LOG_FILE="${_LOGS_DIR_INT}/zapret.log"
+
+ENV container="docker"
 WORKDIR /root
 
-# Upgrade everything and download essentials
-RUN apt-get update && \
-    apt-get install -y init && \
-    apt-get upgrade -y && \
-    apt-get install -y systemd curl wget nano unzip && \
-    apt-get clean all
+# Upgrade everything and install essentials
+RUN DEBIAN_FRONTEND=noninteractive apt-get -y update && apt-get -y dist-upgrade
+RUN DEBIAN_FRONTEND=noninteractive apt-get -y update && apt-get -y install ca-certificates tzdata
+RUN DEBIAN_FRONTEND=noninteractive apt-get -y autoremove && apt-get -y autoclean
+RUN DEBIAN_FRONTEND=noninteractive apt-get clean all
 
-# Setup the environment
-# Original code from <https://github.com/8hrsk/zapret-docker-proxy>
-ENV container=docker
-COPY container.target /etc/systemd/system/container.target
-RUN ln -sf /etc/systemd/system/container.target /etc/systemd/system/default.target
-ENTRYPOINT ["/sbin/init"]
-STOPSIGNAL SIGRTMIN+3
-RUN systemctl set-default multi-user.target
-
-# Install v2ray
-COPY v2ray /opt/v2ray
-RUN ln -s /opt/v2ray/v2ray /usr/local/bin/v2ray
-COPY container_scripts/start_v2ray.sh /opt/v2ray/start_v2ray.sh
-RUN chmod +x /opt/v2ray/start_v2ray.sh
+# Set timezone
+RUN echo "$TZ" >/etc/timezone
+RUN dpkg-reconfigure -f noninteractive tzdata
 
 # Install dnscrypt-proxy
-COPY dnscrypt-proxy /opt/dnscrypt-proxy
-COPY container_scripts/start_dnscrypt-proxy.sh /opt/dnscrypt-proxy/start_dnscrypt-proxy.sh
-RUN chmod +x /opt/dnscrypt-proxy/start_dnscrypt-proxy.sh
+COPY ${DNSCRYPT_DIR} ${_DNSCRYPT_DIR_INT}
+WORKDIR ${_DNSCRYPT_DIR_INT}
+RUN /usr/bin/env bash -c 'echo -e "nameserver 127.0.0.1\nnameserver ::1\noptions edns0" >/etc/resolv.conf.override'
+RUN mkdir -p $(dirname "$_DNSCRYPT_CONFIG_FILE_INT")
+RUN ln -sf "$_DNSCRYPT_CONFIG_FILE" "$_DNSCRYPT_CONFIG_FILE_INT"
+RUN "./dnscrypt-proxy" -config "$_DNSCRYPT_CONFIG_FILE_INT" -service install
+
+# Install v2ray
+COPY ${V2RAY_DIR} ${_V2RAY_DIR_INT}
+WORKDIR ${_V2RAY_DIR_INT}
+RUN mkdir -p $(dirname "$_V2RAY_CONFIG_FILE_INT")
+RUN ln -sf "$_V2RAY_CONFIG_FILE" "$_V2RAY_CONFIG_FILE_INT"
 
 # Install zapret
-COPY zapret /opt/zapret
-WORKDIR /opt/zapret
-RUN ./install_bin.sh && \
-    echo "1" | ./install_prereq.sh
-WORKDIR /root
-COPY container_scripts/start_zapret.sh /opt/zapret/start_zapret.sh
-RUN chmod +x /opt/zapret/start_zapret.sh
+COPY ${ZAPRET_DIR} ${_ZAPRET_DIR_INT}
+WORKDIR ${_ZAPRET_DIR_INT}
+RUN ./install_bin.sh
+RUN echo "1" | ./install_prereq.sh
+RUN echo "Y" | ./install_easy.sh
+RUN mkdir -p $(dirname "$_ZAPRET_CONFIG_FILE_INT")
+RUN ln -sf "$_ZAPRET_CONFIG_FILE" "$_ZAPRET_CONFIG_FILE_INT"
 
-CMD [ "/bin/bash" ]
+WORKDIR /root
+
+# Copy scripts
+COPY container_scripts/entrypoint.sh .
+COPY container_scripts/restart.sh .
+COPY container_scripts/stop.sh .
+RUN chmod +x ./entrypoint.sh ./restart.sh ./stop.sh
+
+# Start everything
+CMD ["/usr/bin/env", "bash", "-c", "./entrypoint.sh"]

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # This file is part of the zapret-v2ray-docker distribution.
 # See <https://github.com/F33RNI/zapret-v2ray-docker> for more info.
@@ -23,22 +23,29 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-# This script restarts all services (execute it if config files have changed)
-# NOTE: This script must ONLY be executed OUTSIDE the container
+# This script executes inside the container and reload all services
+# NOTE: This script must ONLY be executed inside the container
 
-DNSCRYPT_DIR="/opt/dnscrypt-proxy"
+# Check if we're inside the container
+if [[ "$container" != "docker" ]]; then
+    echo "ERROR: This script can ONLY be executed INSIDE the container"
+    exit 126
+fi
 
+# Restart dnscrypt-proxy and wait a bit
 echo "Restarting dnscrypt-proxy"
-docker exec zapret-v2ray-docker "$DNSCRYPT_DIR/dnscrypt-proxy" -service restart
-docker exec zapret-v2ray-docker journalctl -u dnscrypt-proxy.service -n 5 --no-pager
+"$_DNSCRYPT_DIR_INT/dnscrypt-proxy" -logfile "$_DNSCRYPT_LOG_FILE" -service restart
+sleep 3
 
-echo -e "\nRestarting zapret"
-docker exec zapret-v2ray-docker systemctl restart zapret
-docker exec zapret-v2ray-docker journalctl -u zapret.service -n 5 --no-pager
+# Restart zapret
+echo "Restarting zapret"
+"$_ZAPRET_DIR_INT/init.d/sysv/zapret" restart | tee -a "$_ZAPRET_LOG_FILE"
 
-echo -e "\nRestarting v2ray"
-docker exec zapret-v2ray-docker systemctl restart v2ray
-docker exec zapret-v2ray-docker journalctl -u v2ray.service -n 5 --no-pager
-
-echo -e "\nDone! Services restarted"
-exit 0
+# Send SIGTERM to v2ray to restart it
+v2ray_pid=$(pidof "v2ray")
+if [[ $v2ray_pid ]]; then
+    echo "Restarting v2ray"
+    kill -15 "$v2ray_pid"
+else
+    echo "v2ray not running! Wait for it to start or see log file for errors"
+fi

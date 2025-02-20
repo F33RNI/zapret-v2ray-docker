@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # This file is part of the zapret-v2ray-docker distribution.
 # See <https://github.com/F33RNI/zapret-v2ray-docker> for more info.
@@ -23,15 +23,18 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-# This script stops container if it's running
+# This script gracefully stops container if it's running using internal ./stop.sh script
 # NOTE: This script must ONLY be executed OUTSIDE the container
 
-if [ "$(docker container inspect -f '{{.State.Status}}' zapret-v2ray-docker)" = "running" ]; then
-    echo "Stopping container"
-    docker stop zapret-v2ray-docker
-    echo -e "\nContainer stopped"
-else
+# Check if container already stopped
+if [ "$(docker container inspect -f '{{.State.Status}}' zapret-v2ray-docker)" != "running" ]; then
     echo "Container not started or already stopped"
+    exit 0
 fi
 
+# Call internal script
+echo "Stopping container gracefully"
+docker exec zapret-v2ray-docker ./stop.sh
+docker stop zapret-v2ray-docker
+echo -e "\nContainer stopped"
 exit 0

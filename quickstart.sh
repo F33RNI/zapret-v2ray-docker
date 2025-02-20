@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # This file is part of the zapret-v2ray-docker distribution.
 # See <https://github.com/F33RNI/zapret-v2ray-docker> for more info.
@@ -151,30 +151,19 @@ fi
 # Make sure container is stopped
 ./stop.sh
 docker kill zapret-v2ray-docker
-docker rm zapret-v2ray-docker
 
 # Build and start the container
-docker-compose up --build -d
+echo -e "\nBuilding and starting the container"
+docker-compose up --build --detach
 
-# Wait for the container to be ready
-until docker exec zapret-v2ray-docker echo -e "\nContainer is ready"; do
-    echo "Waiting for container to start..."
-    sleep 2
+# Wait for container to be ready
+echo -e "\nWaiting for container to start..."
+attempt=0
+until docker exec zapret-v2ray-docker echo "Container is ready! Check logs in logs/ directory for more info"; do
+    attempt=$((attempt + 1))
+    if [ $attempt -ge 3 ]; then
+        echo "ERROR: Timeout waiting for container to start! Please check errors / config / build files"
+        exit 1
+    fi
+    sleep 1
 done
-
-# ########################## #
-# Install and start services #
-# ########################## #
-
-echo -e "\nExecuting start_dnscrypt-proxy.sh"
-docker exec zapret-v2ray-docker /opt/dnscrypt-proxy/start_dnscrypt-proxy.sh
-
-echo -e "\nExecuting start_zapret.sh"
-docker exec zapret-v2ray-docker /opt/zapret/start_zapret.sh
-
-echo -e "\nExecuting start_v2ray.sh"
-docker exec zapret-v2ray-docker /opt/v2ray/start_v2ray.sh
-
-# Done
-echo -e "\nDone! Container is running"
-exit 0

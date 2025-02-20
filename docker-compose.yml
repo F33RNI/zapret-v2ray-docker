@@ -1,17 +1,31 @@
 services:
     zapret-v2ray-docker:
+        container_name: zapret-v2ray-docker
         build:
             context: .
             dockerfile: Dockerfile
-        container_name: zapret-v2ray-docker
-        privileged: true
-        # network_mode: "host"
-        tmpfs:
-            - /run
-            - /run/lock
+            args:
+                TZ: ${TZ}
+                DNSCRYPT_DIR: ${DNSCRYPT_DIR}
+                V2RAY_DIR: ${V2RAY_DIR}
+                ZAPRET_DIR: ${ZAPRET_DIR}
+                _CONFIGS_DIR_INT: ${_CONFIGS_DIR_INT}
+                _LOGS_DIR_INT: ${_LOGS_DIR_INT}
+
         stdin_open: true
-        tty: true
+
+        # For iptables (zapret)
+        cap_add:
+            - NET_ADMIN
+            - NET_RAW
+
+        # V2Ray
         ports:
-            - "2080:2080"
+            - "${V2RAY_PORT}:${V2RAY_PORT}"
+            #- "${V2RAY_PORT_2}:${V2RAY_PORT_2}"
+            #- "${V2RAY_PORT_3}:${V2RAY_PORT_3}"
+
+        # Config and log files
         volumes:
-            - ./configs:/configs
+            - "${CONFIGS_DIR}:${_CONFIGS_DIR_INT}"
+            - "${LOGS_DIR}:${_LOGS_DIR_INT}"

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # This file is part of the zapret-v2ray-docker distribution.
 # See <https://github.com/F33RNI/zapret-v2ray-docker> for more info.
@@ -23,27 +23,35 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-# This script calls install_easy.sh, creates config symlink and restarts zapret service
+# This script executes inside the container to gracefully stop it
 # NOTE: This script must ONLY be executed inside the container
 
-ZAPRET_DIR="/opt/zapret"
-CONFIG_FILE="/configs/zapret.conf"
-CONFIG_FILE_DST="$ZAPRET_DIR/config"
+# Check if we're inside the container
+if [[ "$container" != "docker" ]]; then
+    echo "ERROR: This script can ONLY be executed INSIDE the container"
+    exit 126
+fi
 
-cd $ZAPRET_DIR
+# Create stop file for v2ray wrapper
+touch /stop
 
-echo "Installing zapret"
-echo -ne "\n" | ./install_easy.sh
-echo "zapret installed"
+# Stop zapret
+echo "Stopping zapret"
+"$_ZAPRET_DIR_INT/init.d/sysv/zapret" stop | tee -a "$_ZAPRET_LOG_FILE"
 
-echo -e "\nCreating symlink to config file $CONFIG_FILE_DST -> $CONFIG_FILE"
-mkdir -p $(dirname "$CONFIG_FILE_DST")
-ln -sf "$CONFIG_FILE" "$CONFIG_FILE_DST"
+# Stop dnscrypt-proxy and restore default DNS
+echo "Stopping dnscrypt-proxy service and restoring original DNS servers"
+"$_DNSCRYPT_DIR_INT/dnscrypt-proxy" -logfile "$_DNSCRYPT_LOG_FILE" -service stop
+if [ -f "/etc/resolv.conf.old" ]; then
+    cp /etc/resolv.conf.old /etc/resolv.conf
+    rm /etc/resolv.conf.old
+fi
 
-echo "Restarting zapret service"
-systemctl daemon-reload
-systemctl enable zapret
-systemctl restart zapret
-
-echo "Done! zapret service started"
-exit 0
+# Finally send SIGTERM to v2ray (because it's the only "blocking" process in entrypoint)
+v2ray_pid=$(pidof "v2ray")
+if [[ $v2ray_pid ]]; then
+    echo "Stopping v2ray"
+    kill -15 "$v2ray_pid"
+else
+    echo "v2ray already stopped"
+fi

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # This file is part of the zapret-v2ray-docker distribution.
 # See <https://github.com/F33RNI/zapret-v2ray-docker> for more info.
@@ -23,25 +23,16 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-# This script copies service file, creates config symlink, replaces config format, enables and starts v2ray service
-# NOTE: This script must ONLY be executed inside the container
+# This script restarts all services if container is running using internal ./restart.sh script
+# (useful if config files have changed)
+# NOTE: This script must ONLY be executed OUTSIDE the container
 
-V2RAY_DIR="/opt/v2ray"
-CONFIG_FILE="/configs/v2ray.json"
-CONFIG_FILE_DST="/usr/local/etc/v2ray/config.json"
+# Check if container is running
+if [ "$(docker container inspect -f '{{.State.Status}}' zapret-v2ray-docker)" != "running" ]; then
+    echo "ERROR: Container is not running!"
+    exit 1
+fi
 
-echo "Creating symlink to config file $CONFIG_FILE_DST -> $CONFIG_FILE"
-mkdir -p $(dirname "$CONFIG_FILE_DST")
-ln -sf "$CONFIG_FILE" "$CONFIG_FILE_DST"
-
-echo "Copying service file and replacing config format"
-cp "$V2RAY_DIR/systemd/system/v2ray.service" /usr/lib/systemd/system/v2ray.service
-sed -i "s|-config|-format jsonv5 -config|g" /usr/lib/systemd/system/v2ray.service
-
-echo "Enabling and restarting v2ray service"
-systemctl daemon-reload
-systemctl enable v2ray
-systemctl restart v2ray
-
-echo "Done! v2ray service started"
-exit 0
+# Call internal script
+echo "Restarting services"
+docker exec zapret-v2ray-docker ./restart.sh
