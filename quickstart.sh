@@ -35,6 +35,9 @@ echo " /_(_][_)[  (/, |       \/ /_. [  (_]\\_|     (_](_)(_.| \\(/,[  "
 echo "      |                              ._|                       "
 echo -e "\nVersion: $_VERSION\n"
 
+# Specify nostart argument to this script to not start the container after build
+if [ $1 = "nostart" ]; then no_start=true; fi
+
 # Checks if command exists and exists it not
 # Args:
 #   1: Command to check
@@ -223,10 +226,23 @@ check_copy_config_file "$DNSCRYPT_CONFIG_FILE"
 check_copy_config_file "$V2RAY_CONFIG_FILE"
 check_copy_config_file "$ZAPRET_CONFIG_FILE"
 
-# Build and start the container
-echo -e "\nBuilding and starting the container"
-if ! docker-compose up --build --detach; then
-    echo "ERROR: docker-compose finished with error"
+# Build the container
+echo -e "\nBuilding container"
+if ! docker-compose build; then
+    echo "ERROR: docker-compose build finished with error"
+    exit 1
+fi
+
+# Exit it user asked not to start the container
+if [ "$no_start" = true ]; then
+    echo "WARNING: nostart argument specified! Exiting after build"
+    exit 0
+fi
+
+# Start it
+echo -e "\nStarting container"
+if ! docker-compose up --detach; then
+    echo "ERROR: docker-compose up finished with error"
     exit 1
 fi
 
