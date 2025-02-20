@@ -37,7 +37,17 @@ echo -e "\nVersion: $_VERSION\n"
 
 # Load environment variables and perform basic check
 source .env
-if [ -z "$DNSCRYPT_DIR" ] || [ -z "$V2RAY_DIR" ] || [ -z "$ZAPRET_DIR" ]; then
+if [ -z "$V2RAY_PORTS" ] ||
+    [ -z "$TZ" ] ||
+    [ -z "$LOGS_DIR" ] ||
+    [ -z "$DNSCRYPT_CONFIG_FILE" ] ||
+    [ -z "$V2RAY_CONFIG_FILE" ] ||
+    [ -z "$ZAPRET_CONFIG_FILE" ] ||
+    [ -z "$DNSCRYPT_DIR" ] ||
+    [ -z "$V2RAY_DIR" ] ||
+    [ -z "$ZAPRET_DIR" ] ||
+    [ -z "$_CONFIGS_DIR_INT" ] ||
+    [ -z "$_LOGS_DIR_INT" ]; then
     echo "ERROR: Some environment variables are empty / not specified"
     exit 1
 fi
@@ -76,6 +86,21 @@ if [ -z "$DNSCRYPT_ARCH" ] || [ -z "$V2RAY_ARCH" ]; then
     if [ -z "$V2RAY_ARCH" ]; then V2RAY_ARCH="$_v2ray_arch"; fi
 fi
 echo "Working on $PLATFORM platform. dnscrypt-proxy target architecture: $DNSCRYPT_ARCH, v2ray: $V2RAY_ARCH"
+
+# Checks if config file doesn't exist and tries to copy .example config or exists if it also doesn't exist
+# Args:
+#   1: Path to expected config file
+check_copy_config_file() {
+    local config_file="$1"
+
+    if [ ! -f "$config_file" ] && [ ! -f "${config_file}.example" ]; then
+        echo "ERROR: No config file $config_file or ${config_file}.example"
+        exit 1
+    elif [ ! -f "$config_file" ]; then
+        echo "WARNING: File $config_file doesn't exist. Copying example one (${config_file}.example)"
+        cp "${config_file}.example" "$config_file"
+    fi
+}
 
 # Wrapper that checks and downloads program
 # Args:
@@ -172,6 +197,11 @@ check_download "$ZAPRET_DIR" "$download_url" "$latest_tag_name"
 # Make sure container is stopped
 ./stop.sh
 docker kill zapret-v2ray-docker
+
+# Check config files and copy .example if not exists
+check_copy_config_file "$DNSCRYPT_CONFIG_FILE"
+check_copy_config_file "$V2RAY_CONFIG_FILE"
+check_copy_config_file "$ZAPRET_CONFIG_FILE"
 
 # Build and start the container
 echo -e "\nBuilding and starting the container"
