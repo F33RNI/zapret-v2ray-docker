@@ -101,10 +101,8 @@ RUN ln -sf "$_ZAPRET_CONFIG_FILE" "$_ZAPRET_CONFIG_FILE_INT"
 WORKDIR /root
 
 # Copy scripts
-COPY container_scripts/entrypoint.sh .
-COPY container_scripts/restart.sh .
-COPY container_scripts/stop.sh .
-RUN chmod +x ./entrypoint.sh ./restart.sh ./stop.sh
+COPY container_scripts/*.sh .
+RUN chmod +x ./*.sh
 
 # Start everything
 CMD ["/usr/bin/env", "bash", "-c", "./entrypoint.sh"]
