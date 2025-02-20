@@ -29,5 +29,7 @@ services:
 
     # Config and log files
     volumes:
-      - "${CONFIGS_DIR}:${_CONFIGS_DIR_INT}"
+      - "${DNSCRYPT_CONFIG_FILE}:${_CONFIGS_DIR_INT}/dnscrypt-proxy.toml"
+      - "${V2RAY_CONFIG_FILE}:${_CONFIGS_DIR_INT}/v2ray.json"
+      - "${ZAPRET_CONFIG_FILE}:${_CONFIGS_DIR_INT}/zapret.conf"
       - "${LOGS_DIR}:${_LOGS_DIR_INT}"
