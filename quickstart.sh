@@ -35,6 +35,26 @@ echo " /_(_][_)[  (/, |       \/ /_. [  (_]\\_|     (_](_)(_.| \\(/,[  "
 echo "      |                              ._|                       "
 echo -e "\nVersion: $_VERSION\n"
 
+# Checks if command exists and exists it not
+# Args:
+#   1: Command to check
+check_command() {
+    echo "Checking $1"
+    if ! command -v $1 2>&1 >/dev/null; then
+        echo "ERROR: $1 could not be found"
+        exit 1
+    fi
+}
+
+# Check requirements
+check_command source
+check_command uname
+check_command curl
+check_command tar
+check_command unzip
+check_command docker
+check_command docker-compose
+
 # Load environment variables and perform basic check
 source .env
 if [ -z "$V2RAY_PORTS" ] ||
