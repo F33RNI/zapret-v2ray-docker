@@ -26,123 +26,137 @@
 # This script downloads v2ray, zapret and dnscrypt-proxy, builds and starts container and starts all services
 # NOTE: This script must ONLY be executed OUTSIDE the container
 
-# v2ray and dnscrypt-proxy platform and architecture
+_VERSION="1.0.dev3"
+
+# Print some cool looking ascii art :)
+echo "                ,           _,                 .      .        "
+echo "__. _.._ ._. _ -+- ___ .  ,'_) ._. _.  . ___  _| _  _.;_/ _ ._."
+echo " /_(_][_)[  (/, |       \/ /_. [  (_]\\_|     (_](_)(_.| \\(/,[  "
+echo "      |                              ._|                       "
+echo -e "\nVersion: $_VERSION\n"
+
+# Platform and architecture for programs
 # See <https://github.com/DNSCrypt/dnscrypt-proxy/releases/latest>
 # and <https://github.com/v2fly/v2ray-core/releases/latest> for more info
-PLATFORM="linux"
-arch_=$(uname -m)
-case "$arch_" in
-x86_64)
-    DNSCRYPT_ARCH="x86_64"
-    V2RAY_ARCH="64"
-    ;;
-i686 | i386)
-    DNSCRYPT_ARCH="x86"
-    V2RAY_ARCH="32"
-    ;;
-aarch64 | arm64 | armv8*)
-    DNSCRYPT_ARCH="arm64"
-    V2RAY_ARCH="arm64-v8a"
-    ;;
-arm* | sa110*)
-    DNSCRYPT_ARCH="arm"
-    V2RAY_ARCH="arm32-v7a"
-    ;;
-*)
-    echo "Unknown architecture: $arch_"
-    exit 1
-    ;;
-esac
-
-# Log them
-echo "Working on $PLATFORM platform. dnscrypt-proxy architecture: $DNSCRYPT_ARCH, v2ray: $V2RAY_ARCH"
-
-# ############## #
-# Download v2ray #
-# ############## #
-
-if [ ! -d "./v2ray" ]; then
-    download_url=$(curl -s https://api.github.com/repos/v2fly/v2ray-core/releases/latest | grep -oP '"browser_download_url": "\K.*?\.zip(?=")' | grep -oE ".*v2ray-${PLATFORM}-${V2RAY_ARCH}\.zip")
-    if [ -z "$download_url" ]; then
-        echo "Error: Unable to find .zip asset in the latest release of v2ray for ${PLATFORM} ${V2RAY_ARCH}"
+#
+# You can specify them as environment variables PLATFORM, DNSCRYPT_ARCH, V2RAY_ARCH
+if [ -z "${PLATFORM}" ]; then PLATFORM="linux"; fi
+if [ -z "${DNSCRYPT_ARCH}" ] || [ -z "${V2RAY_ARCH}" ]; then
+    arch_=$(uname -m)
+    case "$arch_" in
+    x86_64)
+        _dnscrypt_arch="x86_64"
+        _v2ray_arch="64"
+        ;;
+    i686 | i386)
+        _dnscrypt_arch="x86"
+        _v2ray_arch="32"
+        ;;
+    aarch64 | arm64 | armv8*)
+        _dnscrypt_arch="arm64"
+        _v2ray_arch="arm64-v8a"
+        ;;
+    arm* | sa110*)
+        _dnscrypt_arch="arm"
+        _v2ray_arch="arm32-v7a"
+        ;;
+    *)
+        echo "Unknown architecture: $arch_"
         exit 1
-    fi
-    filename=$(basename "$download_url")
-    echo -e "\nDownloading $download_url"
-    wget "$download_url"
-
-    # Extract it
-    unzip "$filename" -d "v2ray"
-    rm "$filename"
-
-    # Check
-    if [ ! -d "./v2ray" ]; then
-        echo "Error downloading or extracting v2ray binaries"
-        exit 1
-    fi
-else
-    echo -e "\n./v2ray directory exists! Skipping it"
+        ;;
+    esac
+    if [ -z "${DNSCRYPT_ARCH}" ]; then DNSCRYPT_ARCH="$_dnscrypt_arch"; fi
+    if [ -z "${V2RAY_ARCH}" ]; then V2RAY_ARCH="$_v2ray_arch"; fi
 fi
+echo "Working on $PLATFORM platform. dnscrypt-proxy target architecture: $DNSCRYPT_ARCH, v2ray: $V2RAY_ARCH"
 
-# ############### #
-# Download zapret #
-# ############### #
+# Wrapper that checks and downloads program
+# Args:
+#   1: Path to target directory (asset will be unpacked into it)
+#   2: Link to asset (.tar.gz or .zip)
+#   3: Latest tag name for simple version checking (grep -oP '"tag_name": "\K.*?(?=")')
+check_download() {
+    local target_dir="$1"
+    local download_url="$2"
+    local latest_tag_name="$3"
 
-if [ ! -d "./zapret" ]; then
-    download_url=$(curl -s https://api.github.com/repos/bol-van/zapret/releases/latest | grep -oP '"browser_download_url": "\K.*?\.tar\.gz(?=")' | grep -v "openwrt")
+    # Debug arguments
+    echo "$download_url @ $latest_tag_name -> $target_dir"
+
+    # Directory and version file exist, and it's the latest version
+    if [ -d "$target_dir" ] && [ -f "$target_dir/tag_name.txt" ] && grep -q "$latest_tag_name" "$target_dir/tag_name.txt"; then
+        echo "Skipping $target_dir ($latest_tag_name already exists)"
+        return
+    fi
+
+    # Check download link
     if [ -z "$download_url" ]; then
-        echo "Error: Unable to find .tar.gz asset in the latest release of zapret"
+        echo "ERROR: No download URL for $target_dir (check platform and architecture)"
         exit 1
     fi
-    filename=$(basename "$download_url")
+
+    # Delete existing dir
+    if [ -d "$target_dir" ]; then
+        echo "The downloaded $target_dir is either not the latest version or doesn't contain a version tag. Deleting"
+        rm -rf "$target_dir"
+    fi
+
+    # Download and check
+    local download_filename=$(basename "$download_url")
     echo -e "\nDownloading $download_url"
-    wget "$download_url"
-
-    # Extract it
-    if ! tar -xvzf "$filename"; then
-        tar xvzf "$filename"
-    fi
-    rm "$filename"
-    mv "./${filename%.*.*}" ./zapret
-
-    # Check
-    if [ ! -d "./zapret" ]; then
-        echo "Error downloading or extracting zapret binaries"
+    curl --output "$download_filename" --location "$download_url"
+    if [ ! -f "$download_filename" ]; then
+        echo "ERROR: Unable to download $download_filename"
         exit 1
     fi
-else
-    echo -e "\n./zapret directory exists! Skipping it"
-fi
 
-# ####################### #
-# Download dnscrypt-proxy #
-# ####################### #
-
-if [ ! -d "./dnscrypt-proxy" ]; then
-    download_url=$(curl -s https://api.github.com/repos/DNSCrypt/dnscrypt-proxy/releases/latest | grep -oP '"browser_download_url": "\K.*?\.tar\.gz(?=")' | grep -oE ".*dnscrypt-proxy-${PLATFORM}_${DNSCRYPT_ARCH}-.*\.tar\.gz")
-    if [ -z "$download_url" ]; then
-        echo "Error: Unable to find .tar.gz asset in the latest release of dnscrypt-proxy for ${PLATFORM} ${DNSCRYPT_ARCH}"
+    # Extract and check
+    if [[ "$download_filename" == *.zip ]]; then
+        echo "Unzipping into $target_dir using unzip command"
+        unzip "$download_filename" -d "$target_dir"
+    else
+        echo "Extracting into $target_dir using tar command"
+        mkdir -p "$target_dir"
+        if ! tar -xvzf "$download_filename" -C "$target_dir" --strip-components 1; then
+            tar xvzf "$download_filename" -C "$target_dir" --strip-components 1
+        fi
+    fi
+    if [ -z "$(ls -A $target_dir)" ]; then
+        echo "ERROR: Unable to extract $download_filename"
         exit 1
     fi
-    filename=$(basename "$download_url")
-    echo -e "\nDownloading $download_url"
-    wget "$download_url"
 
-    # Extract it
-    if ! tar -xvzf "$filename"; then
-        tar xvzf "$filename"
-    fi
-    rm "$filename"
-    mv "./${PLATFORM}-${DNSCRYPT_ARCH}" ./dnscrypt-proxy
+    # Delete archive
+    echo "Deleting archive $download_filename"
+    rm "$download_filename"
 
-    # Check
-    if [ ! -d "./dnscrypt-proxy" ]; then
-        echo "Error downloading or extracting dnscrypt-proxy binaries"
-        exit 1
-    fi
-else
-    echo -e "\n./dnscrypt-proxy directory exists! Skipping it"
-fi
+    # Write latest tag name
+    echo "$latest_tag_name" >"$target_dir/tag_name.txt"
+
+    echo "$target_dir downloaded successfully"
+}
+
+# ################# #
+# Download programs #
+# ################# #
+
+# Download dnscrypt-proxy
+release_json=$(curl -s https://api.github.com/repos/DNSCrypt/dnscrypt-proxy/releases/latest)
+download_url=$(echo "$release_json" | grep -oP '"browser_download_url": "\K.*?\.tar\.gz(?=")' | grep -oE ".*dnscrypt-proxy-${PLATFORM}_${DNSCRYPT_ARCH}-.*\.tar\.gz")
+latest_tag_name=$(echo "$release_json" | grep -oP '"tag_name": "\K.*?(?=")')
+check_download "./dnscrypt-proxy" "$download_url" "$latest_tag_name"
+
+# Download v2ray
+release_json=$(curl -s https://api.github.com/repos/v2fly/v2ray-core/releases/latest)
+download_url=$(echo "$release_json" | grep -oP '"browser_download_url": "\K.*?\.zip(?=")' | grep -oE ".*v2ray-${PLATFORM}-${V2RAY_ARCH}\.zip")
+latest_tag_name=$(echo "$release_json" | grep -oP '"tag_name": "\K.*?(?=")')
+check_download "./v2ray" "$download_url" "$latest_tag_name"
+
+# Download zapret
+release_json=$(curl -s https://api.github.com/repos/bol-van/zapret/releases/latest)
+download_url=$(echo "$release_json" | grep -oP '"browser_download_url": "\K.*?\.tar\.gz(?=")' | grep -v "openwrt")
+latest_tag_name=$(echo "$release_json" | grep -oP '"tag_name": "\K.*?(?=")')
+check_download "./zapret" "$download_url" "$latest_tag_name"
 
 # ############### #
 # Build container #
