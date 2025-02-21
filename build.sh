@@ -62,6 +62,7 @@ check_command docker
 # Load environment variables and perform basic check
 source .env
 if [ -z "$DOCKERFILE" ] ||
+    [ -z "$TAG_NAME" ] ||
     [ -z "$PORTS" ] ||
     [ -z "$LOGS_DIR" ] ||
     [ -z "$DNSCRYPT_CONFIG_FILE" ] ||
@@ -235,7 +236,7 @@ if ! docker build \
     --build-arg ZAPRET_DIR="$ZAPRET_DIR" \
     --build-arg _CONFIGS_DIR_INT="$_CONFIGS_DIR_INT" \
     --build-arg _LOGS_DIR_INT="$_LOGS_DIR_INT" \
-    --tag="f33rni/zapret-v2ray-docker" \
+    --tag="f33rni/zapret-v2ray-docker:$TAG_NAME" \
     --file "$DOCKERFILE" .; then
     echo -e "\nERROR: Build finished with error"
     exit 1
