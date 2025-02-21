@@ -24,7 +24,7 @@
 FROM debian:stable-slim
 LABEL maintainer="Fern Lane"
 
-# Internal paths to programs (where they will be installed) inside the container (copied from host)
+# Internal paths to programs (where they will be installed) inside the image (copied from host)
 ENV _DNSCRYPT_DIR_INT="/opt/dnscrypt-proxy"
 ENV _V2RAY_DIR_INT="/opt/v2ray"
 ENV _ZAPRET_DIR_INT="/opt/zapret"

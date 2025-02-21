@@ -23,7 +23,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-# This script downloads v2ray, zapret and dnscrypt-proxy, builds and starts container and starts all services
+# This script downloads v2ray, zapret and dnscrypt-proxy, builds image and starts container (provide start argument)
 # NOTE: This script must ONLY be executed OUTSIDE the container
 
 _VERSION="1.0.dev3"
@@ -214,9 +214,9 @@ download_url=$(echo "$release_json" | grep -oP '"browser_download_url": "\K.*?\.
 latest_tag_name=$(echo "$release_json" | grep -oP '"tag_name": "\K.*?(?=")')
 check_download "$ZAPRET_DIR" "$download_url" "$latest_tag_name"
 
-# ############### #
-# Build container #
-# ############### #
+# ########### #
+# Build image #
+# ########### #
 
 # Make sure container is stopped
 echo "Stopping and removing old containers"
@@ -227,8 +227,8 @@ check_copy_config_file "$DNSCRYPT_CONFIG_FILE"
 check_copy_config_file "$V2RAY_CONFIG_FILE"
 check_copy_config_file "$ZAPRET_CONFIG_FILE"
 
-# Build the container
-echo -e "\nBuilding container"
+# Build the image
+echo -e "\nBuilding image"
 if ! docker build \
     --build-arg TZ="$TZ" \
     --build-arg DNSCRYPT_DIR="$DNSCRYPT_DIR" \
