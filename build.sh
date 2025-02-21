@@ -36,7 +36,7 @@ echo "      |                              ._|                       "
 echo -e "\nVersion: $_VERSION\n"
 
 # Specify start argument to this script to start the container after build
-if [ $1 = "start" ]; then _start=true; fi
+if [ "$1" = "start" ]; then _start=true; fi
 
 # Checks if command exists and exists it not
 # Args:
@@ -219,8 +219,8 @@ check_download "$ZAPRET_DIR" "$download_url" "$latest_tag_name"
 # ############### #
 
 # Make sure container is stopped
-./stop.sh
-docker kill zapret-v2ray-docker
+echo "Stopping and removing old containers"
+./stop.sh rm
 
 # Check config files and copy .example if not exists
 check_copy_config_file "$DNSCRYPT_CONFIG_FILE"
@@ -243,7 +243,7 @@ if ! docker build \
 fi
 
 # Exit it user not asked to start the container
-if [ "$start" != true ]; then
+if [ "$_start" != true ]; then
     echo -e "\nDone! Run ./start.sh script to start the container"
     exit 0
 fi

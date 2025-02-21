@@ -43,6 +43,10 @@ fi
 ports_arg="-p $(echo "$PORTS" | awk '{$1=$1};1' | sed -r 's/ +/ -p /g')"
 echo "Ports: $ports_arg"
 
+# Make sure container is stopped
+echo "Stopping and removing old containers"
+./stop.sh rm
+
 # Start the container
 echo -e "\nStarting container"
 if ! docker run \

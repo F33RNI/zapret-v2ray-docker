@@ -23,25 +23,29 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-# This script finds container and gracefully stops it if it's running using internal ./stop.sh script
+# This script iterates through all containers, stops them using internal ./stop.sh script and removes if needed
 # NOTE: This script must ONLY be executed OUTSIDE the container
 
-# Get container ID
-container_id=$(docker ps | grep zapret-v2ray-docker | tail -n1 | awk '{print $1}')
-if [ -z "$container_id" ]; then
-    echo "Container not found (not started or already stopped)"
-    exit 0
-fi
+# Specify rm argument to this script to remove the container
+if [ "$1" = "rm" ]; then _rm=true; fi
 
-# Check if container already stopped
-if [ "$(docker container inspect -f '{{.State.Status}}' $container_id)" != "running" ]; then
-    echo "Container is not running (not started or already stopped)"
-    exit 0
-fi
+# Get all container IDs (even of stopped ones)
+while IFS= read -a container_id; do
+    # Check if container is running and stop it
+    if [ "$(docker container inspect -f '{{.State.Status}}' $container_id)" = "running" ]; then
+        echo "Stopping container $container_id gracefully"
+        docker exec "$container_id" ./stop.sh
+        docker stop "$container_id"
+    else
+        echo "Container $container_id is not running"
+    fi
 
-# Call internal script
-echo "Stopping container $container_id gracefully"
-docker exec "$container_id" ./stop.sh
-docker stop "$container_id"
-echo -e "\nContainer $container_id stopped"
-exit 0
+    if [ "$_rm" != true ]; then
+        echo "Launch with rm argument (./stop.sh rm) to remove it"
+        continue
+    fi
+
+    echo "Removing container $container_id"
+    docker rm "$container_id"
+done < <(docker ps -a | grep zapret-v2ray-docker | awk '{print $1}')
+unset container_id
