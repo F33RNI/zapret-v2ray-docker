@@ -28,7 +28,7 @@
 
 # Load environment variables and perform basic check
 source .env
-if [ -z "$V2RAY_PORTS" ] ||
+if [ -z "$PORTS" ] ||
     [ -z "$LOGS_DIR" ] ||
     [ -z "$DNSCRYPT_CONFIG_FILE" ] ||
     [ -z "$V2RAY_CONFIG_FILE" ] ||
@@ -40,22 +40,15 @@ if [ -z "$V2RAY_PORTS" ] ||
 fi
 
 # Build port arguments
-v2ray_ports_arg=(-p "$V2RAY_PORTS")
-for ((i = 2; i <= 10; ++i)); do
-    v2ray_ports_next=V2RAY_PORTS_$i
-    if [ ! -z "${!v2ray_ports_next}" ] && [ "${!v2ray_ports_next}" != "$V2RAY_PORTS" ]; then
-        v2ray_ports_arg+=(-p)
-        v2ray_ports_arg+=("${!v2ray_ports_next}")
-    fi
-done
-echo "Ports: ${v2ray_ports_arg[@]}"
+ports_arg="-p $(echo "$PORTS" | awk '{$1=$1};1' | sed -r 's/ +/ -p /g')"
+echo "Ports: $ports_arg"
 
 # Start the container
 echo -e "\nStarting container"
 if ! docker run \
     --cap-add NET_RAW \
     --cap-add NET_ADMIN \
-    ${v2ray_ports_arg[@]} \
+    $ports_arg \
     --volume "${DNSCRYPT_CONFIG_FILE}:${_CONFIGS_DIR_INT}/dnscrypt-proxy.toml" \
     --volume "${V2RAY_CONFIG_FILE}:${_CONFIGS_DIR_INT}/v2ray.json" \
     --volume "${ZAPRET_CONFIG_FILE}:${_CONFIGS_DIR_INT}/zapret.conf" \

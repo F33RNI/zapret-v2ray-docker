@@ -61,7 +61,7 @@ check_command docker
 # Load environment variables and perform basic check
 source .env
 if [ -z "$DOCKERFILE" ] ||
-    [ -z "$V2RAY_PORTS" ] ||
+    [ -z "$PORTS" ] ||
     [ -z "$TZ" ] ||
     [ -z "$LOGS_DIR" ] ||
     [ -z "$DNSCRYPT_CONFIG_FILE" ] ||
