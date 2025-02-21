@@ -62,7 +62,6 @@ check_command docker
 source .env
 if [ -z "$DOCKERFILE" ] ||
     [ -z "$PORTS" ] ||
-    [ -z "$TZ" ] ||
     [ -z "$LOGS_DIR" ] ||
     [ -z "$DNSCRYPT_CONFIG_FILE" ] ||
     [ -z "$V2RAY_CONFIG_FILE" ] ||
@@ -230,7 +229,6 @@ check_copy_config_file "$ZAPRET_CONFIG_FILE"
 # Build the image
 echo -e "\nBuilding image"
 if ! docker build \
-    --build-arg TZ="$TZ" \
     --build-arg DNSCRYPT_DIR="$DNSCRYPT_DIR" \
     --build-arg V2RAY_DIR="$V2RAY_DIR" \
     --build-arg ZAPRET_DIR="$ZAPRET_DIR" \

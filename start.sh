@@ -29,6 +29,7 @@
 # Load environment variables and perform basic check
 source .env
 if [ -z "$PORTS" ] ||
+    [ -z "$TZ" ] ||
     [ -z "$LOGS_DIR" ] ||
     [ -z "$DNSCRYPT_CONFIG_FILE" ] ||
     [ -z "$V2RAY_CONFIG_FILE" ] ||
