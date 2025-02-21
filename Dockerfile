@@ -34,7 +34,7 @@ ENV _DNSCRYPT_CONFIG_FILE_INT="${_DNSCRYPT_DIR_INT}/dnscrypt-proxy.toml"
 ENV _V2RAY_CONFIG_FILE_INT="${_V2RAY_DIR_INT}/config.json"
 ENV _ZAPRET_CONFIG_FILE_INT="${_ZAPRET_DIR_INT}/config"
 
-# Arguments from docker-compose.yml
+# Arguments from build script or docker-compose.yml
 ARG TZ
 RUN test -n "$TZ"
 ENV TZ=${TZ}

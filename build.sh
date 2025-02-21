@@ -249,20 +249,4 @@ if [ "$start" != true ]; then
 fi
 
 # Start it
-echo -e "\nStarting container"
-if ! docker-compose up --detach; then
-    echo "ERROR: Unable to start the container"
-    exit 1
-fi
-
-# Wait for container to be ready
-echo -e "\nWaiting for container to start..."
-attempt=0
-until docker exec zapret-v2ray-docker echo "Container is ready! Check logs in logs/ directory for more info"; do
-    attempt=$((attempt + 1))
-    if [ $attempt -ge 3 ]; then
-        echo "ERROR: Timeout waiting for container to start! Please check errors / config / build files"
-        exit 1
-    fi
-    sleep 1
-done
+./start.sh
