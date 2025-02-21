@@ -35,9 +35,6 @@ ENV _V2RAY_CONFIG_FILE_INT="${_V2RAY_DIR_INT}/config.json"
 ENV _ZAPRET_CONFIG_FILE_INT="${_ZAPRET_DIR_INT}/config"
 
 # Arguments from build script or docker-compose.yml
-ARG TZ
-RUN test -n "$TZ"
-ENV TZ=${TZ}
 ARG DNSCRYPT_DIR
 RUN test -n "$DNSCRYPT_DIR"
 ENV DNSCRYPT_DIR=${DNSCRYPT_DIR}
@@ -70,10 +67,6 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get -y update && apt-get -y dist-upgrade
 RUN DEBIAN_FRONTEND=noninteractive apt-get -y update && apt-get -y install ca-certificates tzdata
 RUN DEBIAN_FRONTEND=noninteractive apt-get -y autoremove && apt-get -y autoclean
 RUN DEBIAN_FRONTEND=noninteractive apt-get clean all
-
-# Set timezone
-RUN echo "$TZ" >/etc/timezone
-RUN dpkg-reconfigure -f noninteractive tzdata
 
 # Install dnscrypt-proxy
 COPY ${DNSCRYPT_DIR} ${_DNSCRYPT_DIR_INT}

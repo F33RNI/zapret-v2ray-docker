@@ -32,6 +32,9 @@ if [[ "$container" != "docker" ]]; then
     exit 126
 fi
 
+# Deletes log file if it exists
+# Args:
+#   1: Path to log file
 delete_old_log() {
     _config_file=$1
     if [ -f "$_config_file" ]; then
@@ -42,6 +45,11 @@ delete_old_log() {
 
 # Delete previous stop file (just in case)
 if [ -f "/stop" ]; then rm /stop; fi
+
+# Set timezone
+echo "Setting timezone to $TZ"
+echo "$TZ" >/etc/timezone
+dpkg-reconfigure -f noninteractive tzdata
 
 # Remove old config files
 delete_old_log "$_DNSCRYPT_LOG_FILE"

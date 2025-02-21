@@ -53,6 +53,7 @@ if ! docker run \
     --cap-add NET_RAW \
     --cap-add NET_ADMIN \
     $ports_arg \
+    --env TZ=${TZ} \
     --volume "${DNSCRYPT_CONFIG_FILE}:${_CONFIGS_DIR_INT}/dnscrypt-proxy.toml" \
     --volume "${V2RAY_CONFIG_FILE}:${_CONFIGS_DIR_INT}/v2ray.json" \
     --volume "${ZAPRET_CONFIG_FILE}:${_CONFIGS_DIR_INT}/zapret.conf" \
