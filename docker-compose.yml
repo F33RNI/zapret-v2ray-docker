@@ -27,6 +27,11 @@ services:
       - ${V2RAY_PORTS_3}
       - ${V2RAY_PORTS_4}
       - ${V2RAY_PORTS_5}
+      - ${V2RAY_PORTS_6}
+      - ${V2RAY_PORTS_7}
+      - ${V2RAY_PORTS_8}
+      - ${V2RAY_PORTS_9}
+      - ${V2RAY_PORTS_10}
 
     # Config and log files
     volumes:
