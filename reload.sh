@@ -27,12 +27,19 @@
 # (useful if config files have changed)
 # NOTE: This script must ONLY be executed OUTSIDE the container
 
-# Check if container is running
-if [ "$(docker container inspect -f '{{.State.Status}}' zapret-v2ray-docker)" != "running" ]; then
+# Get container ID
+container_id=$(docker ps | grep zapret-v2ray-docker | tail -n1 | awk '{print $1}')
+if [ -z "$container_id" ]; then
+    echo "ERROR: Container not found (not started or already stopped)"
+    exit 1
+fi
+
+# Check if it's running
+if [ "$(docker container inspect -f '{{.State.Status}}' $container_id)" != "running" ]; then
     echo "ERROR: Container is not running!"
     exit 1
 fi
 
 # Call internal script
 echo "Restarting services"
-docker exec zapret-v2ray-docker ./restart.sh
+docker exec "$container_id" ./restart.sh

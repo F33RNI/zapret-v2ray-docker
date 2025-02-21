@@ -23,18 +23,25 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-# This script gracefully stops container if it's running using internal ./stop.sh script
+# This script finds container and gracefully stops it if it's running using internal ./stop.sh script
 # NOTE: This script must ONLY be executed OUTSIDE the container
 
+# Get container ID
+container_id=$(docker ps | grep zapret-v2ray-docker | tail -n1 | awk '{print $1}')
+if [ -z "$container_id" ]; then
+    echo "Container not found (not started or already stopped)"
+    exit 0
+fi
+
 # Check if container already stopped
-if [ "$(docker container inspect -f '{{.State.Status}}' zapret-v2ray-docker)" != "running" ]; then
-    echo "Container not started or already stopped"
+if [ "$(docker container inspect -f '{{.State.Status}}' $container_id)" != "running" ]; then
+    echo "Container is not running (not started or already stopped)"
     exit 0
 fi
 
 # Call internal script
-echo "Stopping container gracefully"
-docker exec zapret-v2ray-docker ./stop.sh
-docker stop zapret-v2ray-docker
-echo -e "\nContainer stopped"
+echo "Stopping container $container_id gracefully"
+docker exec "$container_id" ./stop.sh
+docker stop "$container_id"
+echo -e "\nContainer $container_id stopped"
 exit 0

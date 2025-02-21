@@ -35,8 +35,8 @@ echo " /_(_][_)[  (/, |       \/ /_. [  (_]\\_|     (_](_)(_.| \\(/,[  "
 echo "      |                              ._|                       "
 echo -e "\nVersion: $_VERSION\n"
 
-# Specify nostart argument to this script to not start the container after build
-if [ $1 = "nostart" ]; then no_start=true; fi
+# Specify start argument to this script to start the container after build
+if [ $1 = "start" ]; then _start=true; fi
 
 # Checks if command exists and exists it not
 # Args:
@@ -56,11 +56,12 @@ check_command curl
 check_command tar
 check_command unzip
 check_command docker
-check_command docker-compose
+#check_command docker-compose
 
 # Load environment variables and perform basic check
 source .env
-if [ -z "$V2RAY_PORTS" ] ||
+if [ -z "$DOCKERFILE" ] ||
+    [ -z "$V2RAY_PORTS" ] ||
     [ -z "$TZ" ] ||
     [ -z "$LOGS_DIR" ] ||
     [ -z "$DNSCRYPT_CONFIG_FILE" ] ||
@@ -228,21 +229,29 @@ check_copy_config_file "$ZAPRET_CONFIG_FILE"
 
 # Build the container
 echo -e "\nBuilding container"
-if ! docker-compose build; then
-    echo "ERROR: docker-compose build finished with error"
+if ! docker build \
+    --build-arg TZ="$TZ" \
+    --build-arg DNSCRYPT_DIR="$DNSCRYPT_DIR" \
+    --build-arg V2RAY_DIR="$V2RAY_DIR" \
+    --build-arg ZAPRET_DIR="$ZAPRET_DIR" \
+    --build-arg _CONFIGS_DIR_INT="$_CONFIGS_DIR_INT" \
+    --build-arg _LOGS_DIR_INT="$_LOGS_DIR_INT" \
+    --tag="f33rni/zapret-v2ray-docker" \
+    --file "$DOCKERFILE" .; then
+    echo -e "\nERROR: Build finished with error"
     exit 1
 fi
 
-# Exit it user asked not to start the container
-if [ "$no_start" = true ]; then
-    echo "WARNING: nostart argument specified! Exiting after build"
+# Exit it user not asked to start the container
+if [ "$start" != true ]; then
+    echo -e "\nDone! Run ./start.sh script to start the container"
     exit 0
 fi
 
 # Start it
 echo -e "\nStarting container"
 if ! docker-compose up --detach; then
-    echo "ERROR: docker-compose up finished with error"
+    echo "ERROR: Unable to start the container"
     exit 1
 fi
 

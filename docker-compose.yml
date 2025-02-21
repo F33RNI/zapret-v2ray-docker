@@ -1,9 +1,10 @@
 services:
   zapret-v2ray-docker:
+    image: f33rni/zapret-v2ray-docker
     container_name: zapret-v2ray-docker
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: ${DOCKERFILE}
       args:
         TZ: ${TZ}
         DNSCRYPT_DIR: ${DNSCRYPT_DIR}
