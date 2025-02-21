@@ -52,6 +52,7 @@ check_command() {
 # Check requirements
 check_command source
 check_command uname
+check_command readlink
 check_command curl
 check_command tar
 check_command unzip

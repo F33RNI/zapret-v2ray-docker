@@ -48,6 +48,12 @@ echo "Ports: $ports_arg"
 echo "Stopping and removing old containers"
 ./stop.sh rm
 
+# Convert volumes to absolute paths
+dnscrypt_config_file_abs=$(readlink -f "$DNSCRYPT_CONFIG_FILE")
+v2ray_config_file_abs=$(readlink -f "$V2RAY_CONFIG_FILE")
+zapret_config_file_abs=$(readlink -f "$ZAPRET_CONFIG_FILE")
+logs_dir_abs=$(readlink -f "$LOGS_DIR")
+
 # Start the container
 echo -e "\nStarting container"
 if ! docker run \
@@ -55,10 +61,10 @@ if ! docker run \
     --cap-add NET_ADMIN \
     $ports_arg \
     --env TZ=${TZ} \
-    --volume "${DNSCRYPT_CONFIG_FILE}:${_CONFIGS_DIR_INT}/dnscrypt-proxy.toml" \
-    --volume "${V2RAY_CONFIG_FILE}:${_CONFIGS_DIR_INT}/v2ray.json" \
-    --volume "${ZAPRET_CONFIG_FILE}:${_CONFIGS_DIR_INT}/zapret.conf" \
-    --volume "${LOGS_DIR}:${_LOGS_DIR_INT}" \
+    --volume "${dnscrypt_config_file_abs}:${_CONFIGS_DIR_INT}/dnscrypt-proxy.toml" \
+    --volume "${v2ray_config_file_abs}:${_CONFIGS_DIR_INT}/v2ray.json" \
+    --volume "${zapret_config_file_abs}:${_CONFIGS_DIR_INT}/zapret.conf" \
+    --volume "${logs_dir_abs}:${_LOGS_DIR_INT}" \
     --name "zapret-v2ray-docker" \
     -d "f33rni/zapret-v2ray-docker"; then
     echo -e "\nERROR: Unable to start container"
