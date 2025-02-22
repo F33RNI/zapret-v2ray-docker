@@ -30,7 +30,7 @@
 # Get container ID
 container_id=$(docker ps | grep zapret-v2ray-docker | tail -n1 | awk '{print $1}')
 if [ -z "$container_id" ]; then
-    echo "ERROR: Container not found (not started or already stopped)"
+    echo "ERROR: Container not found"
     exit 1
 fi
 
