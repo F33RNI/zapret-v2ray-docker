@@ -46,7 +46,7 @@ echo "Stopping zapret"
 "$_ZAPRET_DIR_INT/init.d/sysv/zapret" stop | tee -a "$_ZAPRET_LOG_FILE"
 
 # Run blockcheck.sh in BATCH mode
-echo -e "\nStarting blockcheck in batch mode on domains: $DOMAINS_DEFAULT"
+echo -e "\nStarting blockcheck in batch mode on domains: $DOMAINS"
 BATCH=1 \
     DOMAINS="$DOMAINS" \
     IPVS=4 \
